@@ -1,12 +1,22 @@
-# Etapa de build
-FROM maven:3.8.5-openjdk-17 AS builder
-WORKDIR /app
-COPY ../.. .
-RUN mvn clean package -DskipTests
+# Etapa 1: Build
+FROM ubuntu:latest AS build
+RUN apt-get update && apt-get install -y openjdk-17-jdk maven
 
-# Etapa de execução
-FROM eclipse-temurin:17-jdk-alpine
+# Define um diretório de trabalho consistente
 WORKDIR /app
-COPY --from=builder /app/target/*.jar app.jar
+
+# Copia tudo para /app
+COPY . .
+
+# Constrói o projeto
+RUN mvn clean install -DskipTests
+
+# Etapa 2: Execução
+FROM openjdk:17-jdk-slim
+
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+# Copia o .jar gerado do diretório correto
+COPY --from=build /app/target/*.jar app.jar
+
+ENTRYPOINT [ "java", "-jar", "app.jar" ]
